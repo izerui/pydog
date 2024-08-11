@@ -92,7 +92,7 @@ def path_with_root(path) -> str:
     elif isinstance(path, PosixPath):
         real_path = str(path)
         print(real_path)
-        return real_path.replace(root_path, '')
+        return real_path.replace(root_path, '', 1)
     else:
         raise BaseException('error type with "path" param!')
 
@@ -206,7 +206,7 @@ async def download_file(background_tasks: BackgroundTasks, path: str = Query(ali
             temp_dir = tempfile.mkdtemp()
             zip_file_path = os.path.join(temp_dir, f"{file.name}.zip")
             # 压缩目录
-            shutil.make_archive(base_name=zip_file_path.replace(".zip", ""), format='zip', root_dir=real_path)
+            shutil.make_archive(base_name=zip_file_path.rstrip(".zip"), format='zip', root_dir=real_path)
             # 定义删除临时目录的后台任务
             background_tasks.add_task(shutil.rmtree, temp_dir)
             return StreamingResponse(iterfile(zip_file_path), media_type='application/zip',
