@@ -207,6 +207,6 @@ if __name__ == "__main__":
 
     os.environ["http_proxy"] = ""
     os.environ["https_proxy"] = ""
-    logging.info('启动pydog助手: http://127.0.0.1:8007')
+    logging.info('启动网狗盘: http://127.0.0.1:8007')
     logging.info('API文档: http://127.0.0.1:8007/docs')
     uvicorn.run(app, host="0.0.0.0", port=8007, timeout_keep_alive=60, reload=False)
