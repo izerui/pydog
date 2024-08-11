@@ -1,7 +1,7 @@
 import logging
+import os
 import shutil
 import tempfile
-import os
 from pathlib import Path, PosixPath
 
 import uvicorn
@@ -142,7 +142,10 @@ async def delete_file(path: str = Form(alias='path'), username: str = Depends(ge
     try:
         real_path = Path(path_with_root(path))
         if os.path.exists(real_path):
-            shutil.rmtree(real_path)
+            if os.path.isfile(real_path):
+                os.remove(real_path)
+            else:
+                shutil.rmtree(real_path)
         else:
             raise BaseException(f"File {path} does not exist.")
         return JSONResponse(content={}, status_code=200)
