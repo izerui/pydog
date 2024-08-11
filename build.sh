@@ -1,3 +1,3 @@
-docker build -f Dockerfile -t pydog:1.0 .
-docker tag pydog:1.0 izerui/pydog:1.0
-docker push izerui/pydog:1.0
+docker build -f Dockerfile -t pydog:1.1 .
+docker tag pydog:1.1 izerui/pydog:1.1
+docker push izerui/pydog:1.1
