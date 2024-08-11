@@ -17,11 +17,11 @@
    * `uvicorn main:app --host 0.0.0.0 --timeout-keep-alive 60 --workers 8`
 
 
-系统变量:
+默认系统变量:
 ```
-root_path: 根目录
-username: 用户名
-password: 密码
+root_path: /Users/liuyuhua/Downloads
+username: admin
+password: admin.123
 ```
 
 附:
