@@ -91,6 +91,7 @@ def path_with_root(path) -> str:
         return f'{root_path}/{path}'
     elif isinstance(path, PosixPath):
         real_path = str(path)
+        print(real_path)
         return real_path.replace(root_path, '')
     else:
         raise BaseException('error type with "path" param!')
