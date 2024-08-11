@@ -55,7 +55,7 @@ function _disableReloads() {
 
 function _enableReloads() {
   _reloadingDisabled -= 1;
-  
+
   if (_pendingReloads.length > 0) {
     _reload(_pendingReloads.shift());
   }
@@ -68,7 +68,7 @@ function _reload(path) {
     }
     return;
   }
-  
+
   _disableReloads();
   $.ajax({
     url: 'list',
@@ -76,20 +76,21 @@ function _reload(path) {
     data: {path: path},
     dataType: 'json'
   }).fail(function(jqXHR, textStatus, errorThrown) {
-    _showError("Failed retrieving contents of \"" + path + "\"", textStatus, errorThrown);
+    errorMessage = jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Internal Server Error";
+    _showError("Failed retrieving contents of \"" + path + "\"", textStatus, errorMessage);
   }).done(function(data, textStatus, jqXHR) {
     var scrollPosition = $(document).scrollTop();
-    
+
     if (path != _path) {
       $("#path").empty();
       if (path == "/") {
         $("#path").append('<li class="active">' + _device + '</li>');
       } else {
-        $("#path").append('<li data-path="/"><a>' + _device + '</a></li>');
+        $("#path").append('<li data-path="/"><a style=\"cursor:pointer\">' + _device + '</a></li>');
         var components = path.split("/").slice(1, -1);
         for (var i = 0; i < components.length - 1; ++i) {
           var subpath = "/" + components.slice(0, i + 1).join("/") + "/";
-          $("#path").append('<li data-path="' + subpath + '"><a>' + components[i] + '</a></li>');
+          $("#path").append('<li data-path="' + subpath + '"><a style=\"cursor:pointer\">' + components[i] + '</a></li>');
         }
         $("#path > li").click(function(event) {
           _reload($(this).data("path"));
@@ -99,13 +100,13 @@ function _reload(path) {
       }
       _path = path;
     }
-    
+
     $("#listing").empty();
     for (var i = 0, file; file = data[i]; ++i) {
       $(tmpl("template-listing", file)).data(file).appendTo("#listing");
     }
-    
-    $(".edit").editable(function(value, settings) { 
+
+    $(".edit").editable(function(value, settings) {
       var name = $(this).parent().parent().data("name");
       if (value != name) {
         var path = $(this).parent().parent().data("path");
@@ -115,7 +116,8 @@ function _reload(path) {
           data: {oldPath: path, newPath: _path + value},
           dataType: 'json'
         }).fail(function(jqXHR, textStatus, errorThrown) {
-          _showError("Failed moving \"" + path + "\" to \"" + _path + value + "\"", textStatus, errorThrown);
+          errorMessage = jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Internal Server Error";
+          _showError("Failed moving \"" + path + "\" to \"" + _path + value + "\"", textStatus, errorMessage);
         }).always(function() {
           _reload(_path);
         });
@@ -132,26 +134,26 @@ function _reload(path) {
         _enableReloads();
       }
     });
-    
+
     $(".button-download").click(function(event) {
       var path = $(this).parent().parent().data("path");
       setTimeout(function() {
         window.location = "download?path=" + encodeURIComponent(path);
       }, 0);
     });
-    
+
     $(".button-open").click(function(event) {
       var path = $(this).parent().parent().data("path");
       _reload(path);
     });
-          
+
     $(".button-open-file").click(function(event) {
         var path = $(this).parent().parent().data("path");
         setTimeout(function() {
            window.location = "openfile?path=" + encodeURIComponent(path);
         }, 0);
     });
-    
+
     $(".button-move").click(function(event) {
       var path = $(this).parent().parent().data("path");
       if (path[path.length - 1] == "/") {
@@ -161,7 +163,7 @@ function _reload(path) {
       $("#move-input").val(path);
       $("#move-modal").modal("show");
     });
-    
+
     $(".button-delete").click(function(event) {
       var path = $(this).parent().parent().data("path");
       $.ajax({
@@ -170,12 +172,13 @@ function _reload(path) {
         data: {path: path},
         dataType: 'json'
       }).fail(function(jqXHR, textStatus, errorThrown) {
-        _showError("Failed deleting \"" + path + "\"", textStatus, errorThrown);
+        errorMessage = jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Internal Server Error";
+        _showError("Failed deleting \"" + path + "\"", textStatus, errorMessage);
       }).always(function() {
         _reload(_path);
       });
     });
-    
+
     $(document).scrollTop(scrollPosition);
   }).always(function() {
     _enableReloads();
@@ -183,18 +186,18 @@ function _reload(path) {
 }
 
 $(document).ready(function() {
-  
+
   // Workaround Firefox and IE not showing file selection dialog when clicking on "upload-file" <button>
   // Making it a <div> instead also works but then it the button doesn't work anymore with tab selection or accessibility
   $("#upload-file").click(function(event) {
     $("#fileupload").click();
   });
-  
+
   // Prevent event bubbling when using workaround above
   $("#fileupload").click(function(event) {
     event.stopPropagation();
   });
-  
+
   $("#fileupload").fileupload({
     dropZone: $(document),
     pasteZone: null,
@@ -207,18 +210,18 @@ $(document).ready(function() {
     url: 'upload',
     type: 'POST',
     dataType: 'json',
-    
+
     start: function(e) {
       $(".uploading").show();
     },
-    
+
     stop: function(e) {
       $(".uploading").hide();
     },
-    
+
     add: function(e, data) {
       var file = data.files[0];
-                              
+
       var obj = data.files[0];
       var file = obj;
       if(obj instanceof File){
@@ -230,7 +233,7 @@ $(document).ready(function() {
       else if(obj.entry !== undefined && obj.entry instanceof FileSystemDirectoryEntry && StringUtils.pathExtension(obj.entry.name)==="zip"){
          file = {name: obj.entry.name.replace(/^.*\\/, ''), type: "application/zip"};
       }
-                              
+
       if(file!==null){
           var destinationPath = _path;
           if (file.relativePath !== undefined){
@@ -249,67 +252,67 @@ $(document).ready(function() {
               }
           }
           if(StringUtils.isFileNameSupported(file.name)===true && destinationPathValid===true){
-                              
+
               var resultPath = destinationPath === "/" ? destinationPath : "/" + StringUtils.lastPathComponent(destinationPath);
               var fullPath = resultPath === "/" ? resultPath + file.name : resultPath + "/" + file.name;
-                              
+
               data.context = $(tmpl("template-uploads", {
                    name: file.name,
                    path: resultPath,
                    fullPath: fullPath
               })).appendTo("#uploads");
-                              
+
               var files = [];
               files.push(file);
               data.files = files;
-                              
+
               var jqXHR = data.submit();
               data.context.find("button").click(function(event) {
                    jqXHR.abort();
               });
           }
       }
-                     
+
     },
-    
+
     progress: function(e, data) {
       var progress = parseInt(data.loaded / data.total * 100, 10);
       data.context.find(".progress-bar").css("width", progress + "%");
     },
-    
+
     done: function(e, data) {
       _reload(_path);
     },
-    
+
     fail: function(e, data) {
       var file = data.files[0];
       if (data.errorThrown != "abort") {
         _showError("Failed uploading \"" + file.name + "\" to \"" + _path + "\"", data.textStatus, data.errorThrown);
       }
     },
-    
+
     always: function(e, data) {
       data.context.remove();
     },
-    
+
   });
-  
+
   $("#create-input").keypress(function(event) {
     if (event.keyCode == ENTER_KEYCODE) {
       $("#create-confirm").click();
     };
   });
-  
+
   $("#create-modal").on("shown.bs.modal", function(event) {
     $("#create-input").focus();
     $("#create-input").select();
   });
-  
+
   $("#create-folder").click(function(event) {
     $("#create-input").val("Untitled folder");
     $("#create-modal").modal("show");
   });
-  
+
   $("#create-confirm").click(function(event) {
     $("#create-modal").modal("hide");
     var name = $("#create-input").val();
@@ -320,24 +323,25 @@ $(document).ready(function() {
         data: {path: _path + name},
         dataType: 'json'
       }).fail(function(jqXHR, textStatus, errorThrown) {
-        _showError("Failed creating folder \"" + name + "\" in \"" + _path + "\"", textStatus, errorThrown);
+        errorMessage = jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Internal Server Error";
+        _showError("Failed creating folder \"" + name + "\" in \"" + _path + "\"", textStatus, errorMessage);
       }).always(function() {
         _reload(_path);
       });
     }
   });
-  
+
   $("#move-input").keypress(function(event) {
     if (event.keyCode == ENTER_KEYCODE) {
       $("#move-confirm").click();
     };
   });
-  
+
   $("#move-modal").on("shown.bs.modal", function(event) {
     $("#move-input").focus();
     $("#move-input").select();
   })
-  
+
   $("#move-confirm").click(function(event) {
     $("#move-modal").modal("hide");
     var oldPath = $("#move-input").data("path");
@@ -349,23 +353,24 @@ $(document).ready(function() {
         data: {oldPath: oldPath, newPath: newPath},
         dataType: 'json'
       }).fail(function(jqXHR, textStatus, errorThrown) {
-        _showError("Failed moving \"" + oldPath + "\" to \"" + newPath + "\"", textStatus, errorThrown);
+        errorMessage = jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Internal Server Error";
+        _showError("Failed moving \"" + oldPath + "\" to \"" + newPath + "\"", textStatus, errorMessage);
       }).always(function() {
         _reload(_path);
       });
     }
   });
-  
+
   $("#reload").click(function(event) {
     _reload(_path);
   });
-  
+
   _reload("/");
-  
+
 });
 
 var StringUtils = {
-    
+
 removeFinalSlash: function (path) {
     if (!path) {
         return "";
@@ -375,7 +380,7 @@ removeFinalSlash: function (path) {
     ? path.substr(0, lastCharPosition)
     : path;
 },
-    
+
 lastPathComponent: function (path) {
     if (!path) {
         return "";
@@ -387,7 +392,7 @@ lastPathComponent: function (path) {
     }
     return trimmedString;
 },
-    
+
 isFileNameSupported: function (str) {
     if (typeof str !== "string") {
         return false;
@@ -397,7 +402,7 @@ isFileNameSupported: function (str) {
     }
     return true;
 },
-    
+
 pathExtension: function (str) {
     if (typeof str !== "string") {
         return "";
@@ -408,5 +413,5 @@ pathExtension: function (str) {
     }
     return "";
 }
-    
+
 };
