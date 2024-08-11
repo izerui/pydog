@@ -4,8 +4,10 @@ import tempfile
 from pathlib import Path, PosixPath
 
 import uvicorn
-from fastapi import FastAPI, Request, Query, UploadFile, Form, File, BackgroundTasks
+from fastapi import FastAPI, Request, Query, UploadFile, Form, File, BackgroundTasks, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from starlette import status
 from starlette.responses import FileResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -46,9 +48,27 @@ app.mount("/fonts", StaticFiles(directory="static/fonts"), name="fonts")
 
 templates = Jinja2Templates(directory="templates")
 
+security = HTTPBasic()
+
+
+def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = "admin"
+    correct_password = "admin.123"
+    if os.getenv('username'):
+        correct_username = os.getenv('username')
+    if os.getenv('password'):
+        correct_password = os.getenv('password')
+    if credentials.username != correct_username or credentials.password != correct_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
 
 @app.get("/", response_class=FileResponse)
-async def index(request: Request):
+async def index(request: Request, username: str = Depends(get_current_username)):
     file_path = os.path.join("templates", "index.html")
     return FileResponse(file_path)
 
@@ -75,7 +95,7 @@ def path_with_root(path) -> str:
 
 
 @app.get("/list")
-async def list_files(path: str | None = Query('/', alias='path'), ):
+async def list_files(path: str | None = Query('/', alias='path'), username: str = Depends(get_current_username)):
     try:
         _path = path_with_root(path)
         real_path = Path(_path)
@@ -101,7 +121,8 @@ async def list_files(path: str | None = Query('/', alias='path'), ):
 
 
 @app.post("/upload")
-async def upload_files(path: str = Form(alias='path'), files: list[UploadFile] = File(alias='files[]')):
+async def upload_files(path: str = Form(alias='path'), files: list[UploadFile] = File(alias='files[]'),
+                       username: str = Depends(get_current_username)):
     try:
         real_path = Path(path_with_root(path))
         saved_files = []
@@ -116,7 +137,7 @@ async def upload_files(path: str = Form(alias='path'), files: list[UploadFile] =
 
 
 @app.post("/delete")
-async def delete_file(path: str = Form(alias='path')):
+async def delete_file(path: str = Form(alias='path'), username: str = Depends(get_current_username)):
     try:
         real_path = Path(path_with_root(path))
         if os.path.exists(real_path):
@@ -129,7 +150,7 @@ async def delete_file(path: str = Form(alias='path')):
 
 
 @app.post("/create")
-async def create_folder(path: str = Form(alias='path')):
+async def create_folder(path: str = Form(alias='path'), username: str = Depends(get_current_username)):
     try:
         real_path = Path(path_with_root(path))
         if os.path.exists(real_path):
@@ -142,7 +163,8 @@ async def create_folder(path: str = Form(alias='path')):
 
 
 @app.post("/move")
-async def move_path(oldPath: str = Form(alias='oldPath'), newPath: str = Form(alias='newPath')):
+async def move_path(oldPath: str = Form(alias='oldPath'), newPath: str = Form(alias='newPath'),
+                    username: str = Depends(get_current_username)):
     try:
         old_real_path = path_with_root(oldPath)
         new_real_path = path_with_root(newPath)
@@ -157,7 +179,8 @@ async def move_path(oldPath: str = Form(alias='oldPath'), newPath: str = Form(al
 
 @app.get("/openfile")
 @app.get("/download")
-async def download_file(background_tasks: BackgroundTasks, path: str = Query(alias='path')):
+async def download_file(background_tasks: BackgroundTasks, path: str = Query(alias='path'),
+                        username: str = Depends(get_current_username)):
     try:
         real_path = Path(path_with_root(path))
         file = Path(real_path)

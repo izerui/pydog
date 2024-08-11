@@ -15,6 +15,13 @@
    * `uvicorn main:app --host 0.0.0.0 --timeout-keep-alive 60 --workers 8`
 
 
+系统变量:
+```
+root_path: 根目录
+username: 用户名
+password: 密码
+```
+
 附:
 
 依赖管理:
