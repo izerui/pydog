@@ -1,8 +1,10 @@
 import logging
+import shutil
+import tempfile
 from pathlib import Path, PosixPath
 
 import uvicorn
-from fastapi import FastAPI, Request, Query, HTTPException, UploadFile, Form, File
+from fastapi import FastAPI, Request, Query, HTTPException, UploadFile, Form, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
@@ -109,6 +111,54 @@ async def upload_files(path: str = Form(alias='path'), files: list[UploadFile] =
                 f.write(await file.read())
             saved_files.append(file.filename)
         return JSONResponse(content={"filenames": saved_files}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"detail": str(e)}, status_code=500)
+
+
+@app.post("/delete")
+async def delete_file(path: str = Form(alias='path')):
+    try:
+        real_path = Path(path_with_root(path))
+        if os.path.exists(real_path):
+            os.remove(real_path)
+        else:
+            raise BaseException(f"File {real_path} does not exist.")
+        return JSONResponse(content={}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"detail": str(e)}, status_code=500)
+
+
+@app.post("/create")
+async def create_folder(path: str = Form(alias='path')):
+    try:
+        real_path = Path(path_with_root(path))
+        if os.path.exists(real_path):
+            raise BaseException(f"Folder {real_path} is existed.")
+        else:
+            os.makedirs(real_path, exist_ok=True)
+        return JSONResponse(content={}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"detail": str(e)}, status_code=500)
+
+
+@app.get("/download")
+async def download_file(background_tasks: BackgroundTasks, path: str = Query(alias='path')):
+    try:
+        real_path = Path(path_with_root(path))
+        file = Path(real_path)
+        if not os.path.exists(real_path):
+            raise BaseException(f"File/Folder {real_path} does not exist.")
+        if os.path.isfile(real_path):
+            return FileResponse(real_path, media_type='application/octet-stream', filename=file.name)
+        else:
+            # 创建临时目录
+            temp_dir = tempfile.mkdtemp()
+            zip_file_path = os.path.join(temp_dir, f"{file.name}.zip")
+            # 压缩目录
+            shutil.make_archive(base_name=zip_file_path.replace(".zip", ""), format='zip', root_dir=real_path)
+            # 定义删除临时目录的后台任务
+            background_tasks.add_task(shutil.rmtree, temp_dir)
+            return FileResponse(zip_file_path, media_type='application/zip', filename=f"{file.name}.zip")
     except Exception as e:
         return JSONResponse(content={"detail": str(e)}, status_code=500)
 
