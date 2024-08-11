@@ -1,4 +1,5 @@
 import logging
+import mimetypes
 import os
 import shutil
 import tempfile
@@ -12,7 +13,6 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from starlette import status
 from starlette.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.staticfiles import StaticFiles
-from starlette.templating import Jinja2Templates
 
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
@@ -47,8 +47,6 @@ app.mount("/js", StaticFiles(directory="static/js"), name="js")
 app.mount("/css", StaticFiles(directory="static/css"), name="css")
 app.mount("/img", StaticFiles(directory="static/img"), name="img")
 app.mount("/fonts", StaticFiles(directory="static/fonts"), name="fonts")
-
-templates = Jinja2Templates(directory="templates")
 
 security = HTTPBasic()
 
@@ -112,9 +110,13 @@ async def list_files(path: str | None = Query('/', alias='path'), username: str 
                     "file_type": 'directory'
                 })
             elif item.is_file():
+                # content_type, _ = mimetypes.guess_type(str(item))
+                stat = item.stat()
                 files.append({
                     "name": item.name,
                     "path": path_with_root(item),
+                    "size": stat.st_size,
+                    # "content_type": content_type,
                     "file_type": 'file'
                 })
         files = sorted(files, key=lambda x: 0 if x['file_type'] == 'directory' else 1)
@@ -200,7 +202,8 @@ async def download_file(background_tasks: BackgroundTasks, path: str = Query(ali
             raise BaseException(f"File/Folder {path} does not exist.")
         if os.path.isfile(real_path):
             return StreamingResponse(iterfile(real_path), media_type='application/octet-stream',
-                                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(file.name)}"})
+                                     headers={
+                                         "Content-Disposition": f"attachment; filename*=UTF-8''{quote(file.name)}"})
         else:
             # 创建临时目录
             temp_dir = tempfile.mkdtemp()
@@ -210,7 +213,8 @@ async def download_file(background_tasks: BackgroundTasks, path: str = Query(ali
             # 定义删除临时目录的后台任务
             background_tasks.add_task(shutil.rmtree, temp_dir)
             return StreamingResponse(iterfile(zip_file_path), media_type='application/zip',
-                                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(file.name)}.zip"},
+                                     headers={
+                                         "Content-Disposition": f"attachment; filename*=UTF-8''{quote(file.name)}.zip"},
                                      background=background_tasks)
     except BaseException as e:
         return JSONResponse(content={"detail": str(e)}, status_code=500)
