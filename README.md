@@ -1,6 +1,8 @@
 # pydog
 网购盘python版本
 
+<img src="111.png">
+
 1. 初始化 python 虚拟环境: 
    * `python3 -m venv rag-ai/venv`
 2. 并切换到当前环境, windows 下自行google。
