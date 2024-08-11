@@ -3,13 +3,14 @@ import os
 import shutil
 import tempfile
 from pathlib import Path, PosixPath
+from urllib.parse import quote
 
 import uvicorn
 from fastapi import FastAPI, Request, Query, UploadFile, Form, File, BackgroundTasks, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from starlette import status
-from starlette.responses import FileResponse, JSONResponse
+from starlette.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
@@ -185,13 +186,19 @@ async def move_path(oldPath: str = Form(alias='oldPath'), newPath: str = Form(al
 @app.get("/download")
 async def download_file(background_tasks: BackgroundTasks, path: str = Query(alias='path'),
                         username: str = Depends(get_current_username)):
+    def iterfile(file_path: str):
+        with open(file_path, mode="rb") as file_like:
+            while chunk := file_like.read(1024 * 1024):  # 每次读取 1MB
+                yield chunk
+
     try:
         real_path = Path(path_with_root(path))
         file = Path(real_path)
         if not os.path.exists(real_path):
             raise BaseException(f"File/Folder {path} does not exist.")
         if os.path.isfile(real_path):
-            return FileResponse(real_path, media_type='application/octet-stream', filename=file.name)
+            return StreamingResponse(iterfile(real_path), media_type='application/octet-stream',
+                                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(file.name)}"})
         else:
             # 创建临时目录
             temp_dir = tempfile.mkdtemp()
@@ -200,8 +207,9 @@ async def download_file(background_tasks: BackgroundTasks, path: str = Query(ali
             shutil.make_archive(base_name=zip_file_path.replace(".zip", ""), format='zip', root_dir=real_path)
             # 定义删除临时目录的后台任务
             background_tasks.add_task(shutil.rmtree, temp_dir)
-            return FileResponse(zip_file_path, media_type='application/zip', filename=f"{file.name}.zip",
-                                background=background_tasks)
+            return StreamingResponse(iterfile(zip_file_path), media_type='application/zip',
+                                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(file.name)}.zip"},
+                                     background=background_tasks)
     except BaseException as e:
         return JSONResponse(content={"detail": str(e)}, status_code=500)
 
