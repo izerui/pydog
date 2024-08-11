@@ -3,7 +3,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path, PosixPath
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import uvicorn
 from fastapi import FastAPI, Request, Query, UploadFile, Form, File, BackgroundTasks, Depends, HTTPException
@@ -99,6 +99,7 @@ def path_with_root(path) -> str:
 @app.get("/list")
 async def list_files(path: str | None = Query('/', alias='path'), username: str = Depends(get_current_username)):
     try:
+        path = unquote(path)
         _path = path_with_root(path)
         real_path = Path(_path)
         files = []

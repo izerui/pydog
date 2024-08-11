@@ -73,7 +73,7 @@ function _reload(path) {
   $.ajax({
     url: 'list',
     type: 'GET',
-    data: {path: path},
+    data: {path: encodeURIComponent(path)},
     dataType: 'json'
   }).fail(function(jqXHR, textStatus, errorThrown) {
     errorMessage = jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Internal Server Error";
