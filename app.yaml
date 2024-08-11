@@ -1,0 +1,99 @@
+# 这是一个k8s应用部署示例,仅做参考
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pydog
+  namespace: yunji
+spec:
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: pydog
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pydog
+    spec:
+      nodeSelector:
+        namespace: yunji
+      tolerations:
+        - key: namespace
+          value: yunji
+          effect: NoSchedule
+          operator: Equal
+      initContainers:
+        - name: init
+          image: "busybox"
+          volumeMounts:
+            - mountPath: /data
+              name: public-storage
+          command: [ "sh", "-c", "chown -R root:root /data && chmod 777 -R /data" ]
+      containers:
+        - name: pydog
+          env:
+            - name: dog_root_path
+              value: /data
+            - name: dog_username
+              value: admin
+            - name: dog_password
+              value: admin
+          image: "izerui/pydog:1.1"
+          imagePullPolicy: Always
+          ports:
+            - name: web
+              containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /data
+              name: public-storage
+      imagePullSecrets:
+        - name: ecr-secret
+      volumes:
+        - name: public-storage
+          persistentVolumeClaim:
+            claimName: public-storage-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pydog
+  namespace: yunji
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP
+  selector:
+    app: pydog
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pydog-ingress
+  namespace: yunji
+  annotations:
+    nginx.ingress.kubernetes.io/service-upstream: 'true'
+    nginx.org/redirect-to-https: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx-nlb
+  tls:
+    - secretName: ssl-secret
+      hosts:
+        - file.simaple.com
+  rules:
+    - host: file.simaple.com
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: pydog
+                port:
+                  number: 8000
