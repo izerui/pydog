@@ -54,10 +54,10 @@ security = HTTPBasic()
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = "admin"
     correct_password = "admin.123"
-    if os.getenv('username'):
-        correct_username = os.getenv('username')
-    if os.getenv('password'):
-        correct_password = os.getenv('password')
+    if os.getenv('dog_username'):
+        correct_username = os.getenv('dog_username')
+    if os.getenv('dog_password'):
+        correct_password = os.getenv('dog_password')
     if credentials.username != correct_username or credentials.password != correct_password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -74,8 +74,8 @@ async def index(request: Request, username: str = Depends(get_current_username))
 
 
 def _root_path():
-    if os.getenv('root_path'):
-        root_path = os.getenv('root_path')
+    if os.getenv('dog_root_path'):
+        root_path = os.getenv('dog_root_path')
     else:
         root_path = '/Users/liuyuhua/Downloads'
     return root_path

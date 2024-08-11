@@ -19,9 +19,9 @@
 
 默认系统变量:
 ```
-root_path: /Users/liuyuhua/Downloads
-username: admin
-password: admin.123
+dog_root_path: /Users/liuyuhua/Downloads
+dog_username: admin
+dog_password: admin.123
 ```
 
 附:
