@@ -1,6 +1,7 @@
 import logging
 import shutil
 import tempfile
+import os
 from pathlib import Path, PosixPath
 
 import uvicorn
@@ -203,8 +204,6 @@ async def download_file(background_tasks: BackgroundTasks, path: str = Query(ali
 
 
 if __name__ == "__main__":
-    import os
-
     os.environ["http_proxy"] = ""
     os.environ["https_proxy"] = ""
     logging.info('启动网狗盘: http://127.0.0.1:8000')
