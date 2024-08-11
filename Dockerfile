@@ -3,6 +3,7 @@ FROM python:3.10-alpine
 WORKDIR /pydog
 
 COPY *.py ./
+COPY requirements.txt ./
 COPY ./static/ ./static/
 COPY ./templates/ ./templates/
 
