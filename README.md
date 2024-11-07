@@ -1,6 +1,8 @@
 # pydog
 网购盘python版本
 
+<img src="111.png">
+
 k8s部署:
 ```
 apiVersion: apps/v1
@@ -100,9 +102,6 @@ spec:
                   number: 8000
 
 ```
-
-<img src="111.png">
-
 
 # git clone 并二次修改开发指南
 
