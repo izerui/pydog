@@ -103,6 +103,9 @@ spec:
 
 <img src="111.png">
 
+
+# git clone 并二次修改开发指南
+
 1. 初始化 python 虚拟环境: 
    * `python3 -m venv rag-ai/venv`
 2. 并切换到当前环境, windows 下自行google。
